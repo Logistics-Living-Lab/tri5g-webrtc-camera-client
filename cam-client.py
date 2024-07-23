@@ -5,6 +5,7 @@ import platform
 
 import aiohttp
 import av
+from aiohttp import ClientConnectorError
 
 from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack, RTCRtpSender
 from aiortc.contrib.media import MediaPlayer
@@ -17,6 +18,33 @@ async def publish(player, args):
     pc = RTCPeerConnection()
     pc.addTrack(player.video)
 
+    @pc.on("datachannel")
+    def on_datachannel(channel):
+        @channel.on("message")
+        def on_message(message):
+            if isinstance(message, str) and message.startswith("ping"):
+                channel.send("pong" + message[4:])
+
+    @pc.on("connectionstatechange")
+    async def on_connectionstatechange():
+        logging.info("Connection state is %s", pc.connectionState)
+
+    @pc.on("iceconnectionstatechange")
+    async def on_connectionstatechange():
+        logging.info("ICE connection state is %s", pc.iceConnectionState)
+
+    @pc.on("icegatheringstatechange")
+    async def on_connectionstatechange():
+        logging.info("ICE Gathering state is %s", pc.iceGatheringState)
+
+    @pc.on("signalingstatechange")
+    async def on_connectionstatechange():
+        logging.info("Signaling state is %s", pc.signalingState)
+
+    @pc.on("track")
+    def on_track(track):
+        logging.info("Track %s received", track.kind)
+
     pcs.add(pc)
 
     if args.force_h264:
@@ -26,12 +54,16 @@ async def publish(player, args):
     await pc.setLocalDescription(await pc.createOffer())
 
     async with aiohttp.ClientSession() as session:
-        async with session.post(offer_url_path, json={
-            'sdp': pc.localDescription.sdp,
-            'type': pc.localDescription.type
-        }) as response:
-            answer = await response.json()
-            await pc.setRemoteDescription(RTCSessionDescription(answer['sdp'], answer['type']))
+        try:
+            async with session.post(offer_url_path, json={
+                'sdp': pc.localDescription.sdp,
+                'type': pc.localDescription.type
+            }) as response:
+                answer = await response.json()
+                await pc.setRemoteDescription(RTCSessionDescription(answer['sdp'], answer['type']))
+        except ClientConnectorError as e:
+            logging.error(f"{e.strerror}: {offer_url_path}")
+            exit(-1)
 
 
 async def run(player, args):
