@@ -1,6 +1,10 @@
 # tri5g-webrtc-camera-client
 
 ```
+python -m venv venv
+```
+
+```
 pip install --no-cache-dir -r requirements.txt
 ```
 ```
