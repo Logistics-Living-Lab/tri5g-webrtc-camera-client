@@ -1,5 +1,7 @@
 import asyncio
+import json
 import logging
+import time
 
 import aiohttp
 from aiohttp import ClientConnectorError
@@ -10,7 +12,9 @@ from aiortc.contrib.media import MediaPlayer
 
 class CamClient:
     def __init__(self, player_options, args):
-        self.peer_connections = set()
+        self.peer_connections = list()
+        self.data_connections = list()
+
         self.task = None
         self.player = None
         self.player_options = player_options
@@ -48,9 +52,26 @@ class CamClient:
 
     def _create_peer_connection(self):
         pc = RTCPeerConnection()
+        dc = pc.createDataChannel('chat')
+        self.data_connections.append(dc)
+
+        @dc.on("message")
+        def on_message(message):
+            if isinstance(message, str):
+                message_json = json.loads(message)
+                if message_json["type"] == "rtt-client":
+                    elapsed_ms = self._current_timestamp_millis() - message_json["timestamp"]
+                    message_rtt_result = {
+                        "type": "rtt-client-result",
+                        "rtt": elapsed_ms
+                    }
+                    dc.send(json.dumps(message_rtt_result))
+                    logging.info(message_rtt_result)
 
         @pc.on("datachannel")
         def on_datachannel(channel):
+            logging.info("Test")
+
             @channel.on("message")
             def on_message(message):
                 if isinstance(message, str) and message.startswith("ping"):
@@ -59,15 +80,16 @@ class CamClient:
         @pc.on("connectionstatechange")
         async def on_connectionstatechange():
             logging.info("Connection state is %s", pc.connectionState)
+            # if pc.connectionState == 'connected':
+
             if pc.connectionState == 'closed':
                 # Reconnects
                 self.task.cancel()
                 await pc.close()
-                self.peer_connections.discard(pc)
+                self.peer_connections.remove(pc)
                 await asyncio.sleep(10)
                 logging.info("Reconnecting...")
                 await self.run()
-
 
         @pc.on("iceconnectionstatechange")
         async def on_connectionstatechange():
@@ -85,10 +107,11 @@ class CamClient:
         def on_track(track):
             logging.info("Track %s received", track.kind)
 
-        self.peer_connections.add(pc)
+        self.peer_connections.append(pc)
         return pc
 
     async def run(self):
+        asyncio.create_task(self._measure_rtt())
         self.task = asyncio.create_task(self._create_task())
         try:
             await self.task
@@ -111,3 +134,18 @@ class CamClient:
 
         transceiver = next(transceiver for transceiver in pc.getTransceivers() if transceiver.kind == "video")
         transceiver.setCodecPreferences(h264_codecs)
+
+    async def _measure_rtt(self):
+        while True:
+            print("Measuring RTT")
+            if len(self.data_connections) > 0 and self.data_connections[0].readyState == 'open':
+                message = {
+                    'timestamp': self._current_timestamp_millis(),
+                    'type': 'rtt-client'
+                }
+
+                self.data_connections[0].send(json.dumps(message))
+            await asyncio.sleep(1)
+
+    def _current_timestamp_millis(self):
+        return time.time_ns() // 1_000_000
