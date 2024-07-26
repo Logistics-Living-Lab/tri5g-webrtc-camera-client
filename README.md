@@ -9,7 +9,7 @@ pip install --no-cache-dir -r requirements.txt
 ```
 
 ```
-python cam-client.py 
+python main.py --camera "Integrated Camera" --fps 30 --resolution 640x480
 ```
 
 ```
