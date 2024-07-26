@@ -55,7 +55,7 @@ class CamClient:
                         answer = await response.json()
                         await pc.setRemoteDescription(RTCSessionDescription(answer['sdp'], answer['type']))
                     else:
-                        logging.error(f"Response Status: {response.status} - {response.reason}")
+                        logging.error(f"{offer_url_path} --- Response Status: {response.status} - {response.reason}")
                         exit(-1)
             except ClientConnectorError as e:
                 logging.error(f"{e.strerror}: {offer_url_path}")

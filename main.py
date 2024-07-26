@@ -9,11 +9,15 @@ from cam_client import CamClient
 
 if __name__ == "__main__":
     logging.basicConfig(
-        format='%(asctime)s.%(msecs)03d %(levelname)-8s %(message)s',
+        format='%(asctime)s.%(msecs)03d | %(name)s | %(levelname)-8s %(message)s',
         level=logging.INFO,
         datefmt='%Y-%m-%d %H:%M:%S')
 
-    av.logging.set_level(av.logging.INFO)
+    av.logging.set_level(av.logging.PANIC)
+
+    logging.getLogger("av").setLevel(av.logging.PANIC)
+    logging.getLogger("libav").setLevel(logging.ERROR)
+    logging.getLogger("aioice.ice").setLevel(logging.ERROR)
 
     os = Util.detect_os()
     logging.info(f"OS: {os}")
