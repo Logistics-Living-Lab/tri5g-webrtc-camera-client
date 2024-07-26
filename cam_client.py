@@ -23,12 +23,19 @@ class CamClient:
         self.args = args
 
     async def publish(self):
-        self.player = MediaPlayer(f"{self.player_options['video_path']}", format=f"{self.player_options['format']}",
-                                  options={
-                                      'rtbufsize': f"{CamClient.RT_BUFFER_SIZE}",
-                                      'video_size': f"{self.args.resolution}",
-                                      'framerate': f"{self.args.fps}"
-                                  })
+        try:
+            self.player = MediaPlayer(f"{self.player_options['video_path']}", format=f"{self.player_options['format']}",
+                                      options={
+                                          'rtbufsize': f"{CamClient.RT_BUFFER_SIZE}",
+                                          'video_size': f"{self.args.resolution}",
+                                          'framerate': f"{self.args.fps}"
+                                      })
+        except Exception as e:
+            if hasattr(e, 'log'):
+                logging.error(e.log)
+            else:
+                logging.error(e)
+            exit(-1)
 
         offer_url_path = f"{self.args.url}"
         pc = self.__create_peer_connection()
