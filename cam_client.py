@@ -4,9 +4,9 @@ import logging
 import time
 
 import aiohttp
-from aiohttp import ClientConnectorError
+from aiohttp import ClientConnectorError, BasicAuth
 
-from aiortc import RTCPeerConnection, RTCSessionDescription, RTCRtpSender
+from aiortc import RTCPeerConnection, RTCSessionDescription, RTCRtpSender, RTCDataChannel
 from aiortc.contrib.media import MediaPlayer
 
 
@@ -28,7 +28,7 @@ class CamClient:
                                       'framerate': f"{self.args.fps}"
                                   })
 
-        offer_url_path = f"{self.args.url}{self.args.key}"
+        offer_url_path = f"{self.args.url}"
         pc = self._create_peer_connection()
         pc.addTrack(self.player.video)
 
@@ -38,9 +38,14 @@ class CamClient:
         # send offer
         await pc.setLocalDescription(await pc.createOffer())
 
+        auth = None
+        if self.args.username and self.args.password:
+            logging.info(f"Authenticating as {self.args.username}...")
+            auth = BasicAuth(self.args.username, self.args.password)
+
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.post(offer_url_path, json={
+                async with session.post(offer_url_path, auth=auth, json={
                     'sdp': pc.localDescription.sdp,
                     'type': pc.localDescription.type
                 }) as response:
@@ -69,13 +74,14 @@ class CamClient:
                     logging.info(message_rtt_result)
 
         @pc.on("datachannel")
-        def on_datachannel(channel):
-            logging.info("Test")
-
+        def on_datachannel(channel: RTCDataChannel):
             @channel.on("message")
             def on_message(message):
-                if isinstance(message, str) and message.startswith("ping"):
-                    channel.send("pong" + message[4:])
+                if isinstance(message, str):
+                    message_json = json.loads(message)
+                    if message_json['type'] == 'rtt-packet':
+                        if channel.readyState == 'open':
+                            channel.send(message)
 
         @pc.on("connectionstatechange")
         async def on_connectionstatechange():

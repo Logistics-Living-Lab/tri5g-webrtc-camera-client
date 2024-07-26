@@ -22,9 +22,10 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Process named arguments.")
     parser.add_argument('--url', type=str, help='WebRTC offer URL', default='http://localhost:9000/offer')
     parser.add_argument('--force-h264', type=bool, help='force H264 codec for transmitting', default=False)
-    parser.add_argument('--key', type=str, help='Optional: Key for transmitting data', default='')
     parser.add_argument('--resolution', type=str, help='Video resolution for transmitting', default='800x600')
     parser.add_argument('--fps', type=str, help='Frame rate from camera', default='30')
+    parser.add_argument("--username", help="Username", type=str)
+    parser.add_argument("--password", help="password", type=str)
 
     default_camera = Util.get_default_camera_for_os(os)
     parser.add_argument('--camera', type=str, help='Key for transmitting data', default=f"{default_camera}")
