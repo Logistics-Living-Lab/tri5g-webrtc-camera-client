@@ -11,6 +11,8 @@ from aiortc.contrib.media import MediaPlayer
 
 
 class CamClient:
+    RT_BUFFER_SIZE = "2000M"
+
     def __init__(self, player_options, args):
         self.peer_connections = list()
         self.data_connections = list()
@@ -23,7 +25,7 @@ class CamClient:
     async def publish(self):
         self.player = MediaPlayer(f"{self.player_options['video_path']}", format=f"{self.player_options['format']}",
                                   options={
-                                      'rtbufsize': '2000M',
+                                      'rtbufsize': f"{CamClient.RT_BUFFER_SIZE}",
                                       'video_size': f"{self.args.resolution}",
                                       'framerate': f"{self.args.fps}"
                                   })
@@ -49,15 +51,19 @@ class CamClient:
                     'sdp': pc.localDescription.sdp,
                     'type': pc.localDescription.type
                 }) as response:
-                    answer = await response.json()
-                    await pc.setRemoteDescription(RTCSessionDescription(answer['sdp'], answer['type']))
+                    if response.status == 200:
+                        answer = await response.json()
+                        await pc.setRemoteDescription(RTCSessionDescription(answer['sdp'], answer['type']))
+                    else:
+                        logging.error(f"Response Status: {response.status} - {response.reason}")
+                        exit(-1)
             except ClientConnectorError as e:
                 logging.error(f"{e.strerror}: {offer_url_path}")
                 exit(-1)
 
     def __create_peer_connection(self):
         pc = RTCPeerConnection()
-        dc = pc.createDataChannel('chat')
+        dc = pc.createDataChannel('client-channel')
         self.data_connections.append(dc)
 
         @dc.on("message")
@@ -117,7 +123,6 @@ class CamClient:
         return pc
 
     async def run(self):
-        asyncio.create_task(self.__measure_rtt())
         self.task = asyncio.create_task(self._create_task())
         try:
             await self.task
@@ -140,18 +145,3 @@ class CamClient:
 
         transceiver = next(transceiver for transceiver in pc.getTransceivers() if transceiver.kind == "video")
         transceiver.setCodecPreferences(h264_codecs)
-
-    async def __measure_rtt(self):
-        while True:
-            print("Measuring RTT")
-            if len(self.data_connections) > 0 and self.data_connections[0].readyState == 'open':
-                message = {
-                    'timestamp': self.__current_timestamp_millis(),
-                    'type': 'rtt-client'
-                }
-
-                self.data_connections[0].send(json.dumps(message))
-            await asyncio.sleep(1)
-
-    def __current_timestamp_millis(self):
-        return time.time_ns() // 1_000_000
