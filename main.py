@@ -13,10 +13,7 @@ if __name__ == "__main__":
         level=logging.INFO,
         datefmt='%Y-%m-%d %H:%M:%S')
 
-    av.logging.set_level(av.logging.PANIC)
-
-    logging.getLogger("av").setLevel(av.logging.PANIC)
-    logging.getLogger("libav").setLevel(logging.ERROR)
+    av.logging.set_level(av.logging.CRITICAL)
     logging.getLogger("aioice.ice").setLevel(logging.ERROR)
 
     os = Util.detect_os()
