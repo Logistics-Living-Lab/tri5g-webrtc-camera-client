@@ -63,36 +63,26 @@ class CamClient:
 
     def __create_peer_connection(self):
         pc = RTCPeerConnection()
-        dc = pc.createDataChannel('client-channel')
-        self.data_connections.append(dc)
+        client_data_channel = pc.createDataChannel('client-channel')
+        self.data_connections.append(client_data_channel)
 
-        @dc.on("message")
+        @client_data_channel.on("message")
         def on_message(message):
-            if isinstance(message, str):
-                message_json = json.loads(message)
-                if message_json["type"] == "rtt-client":
-                    elapsed_ms = self.__current_timestamp_millis() - message_json["timestamp"]
-                    message_rtt_result = {
-                        "type": "rtt-client-result",
-                        "rtt": elapsed_ms
-                    }
-                    dc.send(json.dumps(message_rtt_result))
-                    logging.info(message_rtt_result)
+            logging.info(f"Message received on '{client_data_channel.label}'")
+            logging.info(message)
 
         @pc.on("datachannel")
-        def on_datachannel(channel: RTCDataChannel):
-            @channel.on("message")
+        def on_datachannel(server_channel: RTCDataChannel):
+            @server_channel.on("message")
             def on_message(message):
                 if isinstance(message, str):
                     message_json = json.loads(message)
-                    if message_json['type'] == 'rtt-packet':
-                        if channel.readyState == 'open':
-                            channel.send(message)
+                    if message_json['type'] == 'rtt-packet' and server_channel.readyState == 'open':
+                        server_channel.send(message)
 
         @pc.on("connectionstatechange")
         async def on_connectionstatechange():
             logging.info("Connection state is %s", pc.connectionState)
-            # if pc.connectionState == 'connected':
 
             if pc.connectionState == 'closed':
                 # Reconnects
@@ -123,13 +113,13 @@ class CamClient:
         return pc
 
     async def run(self):
-        self.task = asyncio.create_task(self._create_task())
+        self.task = asyncio.create_task(self.__create_task())
         try:
             await self.task
         except asyncio.CancelledError:
             logging.info("Task cancelled")
 
-    async def _create_task(self):
+    async def __create_task(self):
         await self.publish()
         logging.info(f"Exchanging media {self.args.url}")
 
