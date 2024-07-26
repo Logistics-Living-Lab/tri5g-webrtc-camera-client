@@ -29,11 +29,11 @@ class CamClient:
                                   })
 
         offer_url_path = f"{self.args.url}"
-        pc = self._create_peer_connection()
+        pc = self.__create_peer_connection()
         pc.addTrack(self.player.video)
 
         if self.args.force_h264:
-            self._force_codec(pc, 'video/H264')
+            self.__force_codec(pc, 'video/H264')
 
         # send offer
         await pc.setLocalDescription(await pc.createOffer())
@@ -55,7 +55,7 @@ class CamClient:
                 logging.error(f"{e.strerror}: {offer_url_path}")
                 exit(-1)
 
-    def _create_peer_connection(self):
+    def __create_peer_connection(self):
         pc = RTCPeerConnection()
         dc = pc.createDataChannel('chat')
         self.data_connections.append(dc)
@@ -65,7 +65,7 @@ class CamClient:
             if isinstance(message, str):
                 message_json = json.loads(message)
                 if message_json["type"] == "rtt-client":
-                    elapsed_ms = self._current_timestamp_millis() - message_json["timestamp"]
+                    elapsed_ms = self.__current_timestamp_millis() - message_json["timestamp"]
                     message_rtt_result = {
                         "type": "rtt-client-result",
                         "rtt": elapsed_ms
@@ -117,7 +117,7 @@ class CamClient:
         return pc
 
     async def run(self):
-        asyncio.create_task(self._measure_rtt())
+        asyncio.create_task(self.__measure_rtt())
         self.task = asyncio.create_task(self._create_task())
         try:
             await self.task
@@ -131,7 +131,7 @@ class CamClient:
     def shutdown(self):
         return [pc.close() for pc in self.peer_connections]
 
-    def _force_codec(self, pc, forced_codec):
+    def __force_codec(self, pc, forced_codec):
         codecs = RTCRtpSender.getCapabilities('video').codecs
         h264_codecs = [codec for codec in codecs if codec.mimeType == forced_codec]
         if len(h264_codecs) == 0:
@@ -141,17 +141,17 @@ class CamClient:
         transceiver = next(transceiver for transceiver in pc.getTransceivers() if transceiver.kind == "video")
         transceiver.setCodecPreferences(h264_codecs)
 
-    async def _measure_rtt(self):
+    async def __measure_rtt(self):
         while True:
             print("Measuring RTT")
             if len(self.data_connections) > 0 and self.data_connections[0].readyState == 'open':
                 message = {
-                    'timestamp': self._current_timestamp_millis(),
+                    'timestamp': self.__current_timestamp_millis(),
                     'type': 'rtt-client'
                 }
 
                 self.data_connections[0].send(json.dumps(message))
             await asyncio.sleep(1)
 
-    def _current_timestamp_millis(self):
+    def __current_timestamp_millis(self):
         return time.time_ns() // 1_000_000
