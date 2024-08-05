@@ -23,13 +23,18 @@ class CamClient:
         self.args = args
 
     async def publish(self):
+
+        ffmpeg_options = {
+            'rtbufsize': f"{CamClient.RT_BUFFER_SIZE}",
+            'video_size': f"{self.args.resolution}",
+            'framerate': f"{self.args.fps}",
+            'preset': "veryfast",
+            'bufsize': "1000k"
+        }
+
         try:
             self.player = MediaPlayer(f"{self.player_options['video_path']}", format=f"{self.player_options['format']}",
-                                      options={
-                                          'rtbufsize': f"{CamClient.RT_BUFFER_SIZE}",
-                                          'video_size': f"{self.args.resolution}",
-                                          'framerate': f"{self.args.fps}"
-                                      })
+                                      options=ffmpeg_options)
         except Exception as e:
             if hasattr(e, 'log'):
                 logging.error(e.log)
