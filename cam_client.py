@@ -11,7 +11,7 @@ from aiortc.contrib.media import MediaPlayer
 
 
 class CamClient:
-    RT_BUFFER_SIZE = "2000M"
+    RT_BUFFER_SIZE = "2M"
 
     def __init__(self, player_options, args):
         self.peer_connections = list()
@@ -24,17 +24,27 @@ class CamClient:
 
     async def publish(self):
 
+        # ffmpeg_options = {
+        #     'rtbufsize': f"{CamClient.RT_BUFFER_SIZE}",
+        #     'video_size': f"{self.args.resolution}",
+        #     'framerate': f"{self.args.fps}",
+        #     'preset': "ultrafast",
+        #     'tune': 'zerolatency',
+        #     'bufsize': "1000k"
+        # }
+
         ffmpeg_options = {
-            'rtbufsize': f"{CamClient.RT_BUFFER_SIZE}",
             'video_size': f"{self.args.resolution}",
             'framerate': f"{self.args.fps}",
-            'preset': "veryfast",
-            'bufsize': "1000k"
+            # 'rtbufsize': '0',
+            'fflags': 'nobuffer',
+            'flags': 'low_delay',
+            # 'vcodec': 'libx264'
         }
 
         try:
             self.player = MediaPlayer(f"{self.player_options['video_path']}", format=f"{self.player_options['format']}",
-                                      options=ffmpeg_options)
+                                      options=ffmpeg_options, decode=True)
         except Exception as e:
             if hasattr(e, 'log'):
                 logging.error(e.log)
