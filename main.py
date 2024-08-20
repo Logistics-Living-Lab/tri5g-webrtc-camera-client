@@ -27,6 +27,7 @@ if __name__ == "__main__":
     parser.add_argument('--fps', type=str, help='Frame rate from camera', default='30')
     parser.add_argument("--username", help="Username", type=str)
     parser.add_argument("--password", help="password", type=str)
+    parser.add_argument("--modelId", help="Model id", type=str, default=None)
 
     default_camera = Util.get_default_camera_for_os(os)
     parser.add_argument('--camera', type=str, help='Key for transmitting data', default=f"{default_camera}")

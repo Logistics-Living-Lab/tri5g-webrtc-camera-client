@@ -24,23 +24,23 @@ class CamClient:
 
     async def publish(self):
 
-        # ffmpeg_options = {
-        #     'rtbufsize': f"{CamClient.RT_BUFFER_SIZE}",
-        #     'video_size': f"{self.args.resolution}",
-        #     'framerate': f"{self.args.fps}",
-        #     'preset': "ultrafast",
-        #     'tune': 'zerolatency',
-        #     'bufsize': "1000k"
-        # }
-
         ffmpeg_options = {
+            'rtbufsize': f"{CamClient.RT_BUFFER_SIZE}",
             'video_size': f"{self.args.resolution}",
             'framerate': f"{self.args.fps}",
-            # 'rtbufsize': '0',
-            'fflags': 'nobuffer',
-            'flags': 'low_delay',
-            # 'vcodec': 'libx264'
+            'preset': "ultrafast",
+            'tune': 'zerolatency',
+            'bufsize': "1000k"
         }
+
+        # ffmpeg_options = {
+        #     'video_size': f"{self.args.resolution}",
+        #     'framerate': f"{self.args.fps}",
+        #     # 'rtbufsize': '0',
+        #     'fflags': 'nobuffer',
+        #     'flags': 'low_delay',
+        #     # 'vcodec': 'libx264'
+        # }
 
         try:
             self.player = MediaPlayer(f"{self.player_options['video_path']}", format=f"{self.player_options['format']}",
@@ -67,12 +67,17 @@ class CamClient:
             logging.info(f"Authenticating as {self.args.username}...")
             auth = BasicAuth(self.args.username, self.args.password)
 
+        payload = {
+            'sdp': pc.localDescription.sdp,
+            'type': pc.localDescription.type
+        }
+
+        if self.args.modelId:
+            payload['modelId'] = self.args.modelId
+
         async with aiohttp.ClientSession() as session:
             try:
-                async with session.post(offer_url_path, auth=auth, json={
-                    'sdp': pc.localDescription.sdp,
-                    'type': pc.localDescription.type
-                }) as response:
+                async with session.post(offer_url_path, auth=auth, json=payload) as response:
                     if response.status == 200:
                         answer = await response.json()
                         await pc.setRemoteDescription(RTCSessionDescription(answer['sdp'], answer['type']))
