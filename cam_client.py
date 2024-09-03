@@ -54,7 +54,8 @@ class CamClient:
                 self.player = MediaPlayer(self.args.rtspUrl, options={
                     "rtsp_transport": "tcp",
                     "analyzeduration": "10000000",
-                    "probesize": "10000000"
+                    "probesize": "10000000",
+                    "r": {self.args.fps}
                 })
             else:
                 self.player = MediaPlayer(f"{self.player_options['video_path']}",
