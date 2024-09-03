@@ -1,6 +1,8 @@
 import asyncio
 import json
 import logging
+import os
+
 import time
 
 import aiohttp
@@ -8,6 +10,8 @@ from aiohttp import ClientConnectorError, BasicAuth
 
 from aiortc import RTCPeerConnection, RTCSessionDescription, RTCRtpSender, RTCDataChannel
 from aiortc.contrib.media import MediaPlayer
+
+from util import Util
 
 
 class CamClient:
@@ -43,8 +47,13 @@ class CamClient:
         # }
 
         try:
-            self.player = MediaPlayer(f"{self.player_options['video_path']}", format=f"{self.player_options['format']}",
-                                      options=ffmpeg_options, decode=True)
+            if self.args.videoFile is not None:
+                self.player = MediaPlayer(os.path.join(Util.get_root_path(), self.args.videoFile))
+
+            else:
+                self.player = MediaPlayer(f"{self.player_options['video_path']}",
+                                          format=f"{self.player_options['format']}",
+                                          options=ffmpeg_options, decode=True)
         except Exception as e:
             if hasattr(e, 'log'):
                 logging.error(e.log)

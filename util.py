@@ -1,5 +1,8 @@
 import logging
+import os
 import platform
+
+
 class Util:
 
     @staticmethod
@@ -34,3 +37,7 @@ class Util:
             return "/dev/video0"
         else:
             logging.error(f"OS [{operating_system} not supported")
+
+    @staticmethod
+    def get_root_path():
+        return os.path.dirname(os.path.abspath(__file__))
