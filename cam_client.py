@@ -47,9 +47,15 @@ class CamClient:
         # }
 
         try:
+
             if self.args.videoFile is not None:
                 self.player = MediaPlayer(os.path.join(Util.get_root_path(), self.args.videoFile))
-
+            elif self.args.rtspUrl is not None:
+                self.player = MediaPlayer(self.args.rtspUrl, options={
+                    "rtsp_transport": "tcp",
+                    "analyzeduration": "10000000",
+                    "probesize": "10000000"
+                })
             else:
                 self.player = MediaPlayer(f"{self.player_options['video_path']}",
                                           format=f"{self.player_options['format']}",
