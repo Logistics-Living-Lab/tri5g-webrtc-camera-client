@@ -55,7 +55,10 @@ class CamClient:
                     "rtsp_transport": "tcp",
                     "analyzeduration": "10000000",
                     "probesize": "10000000",
-                    "r": f"{self.args.fps}"
+                    "r": f"{self.args.fps}",
+                    'video_size': f"{self.args.resolution}",
+                    'framerate': f"{self.args.fps}",
+                    'preset': "ultrafast",
                 })
             else:
                 self.player = MediaPlayer(f"{self.player_options['video_path']}",
